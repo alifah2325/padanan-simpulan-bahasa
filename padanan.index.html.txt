@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padanan Simpulan Bahasa Ceriah!</title>
+    <!-- Tailwind CSS CDN untuk utiliti asas dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Mengimport font Inter dari Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #a8e063, #56ab2f); /* Latar belakang ceria */
+            overflow: hidden; /* Elak scroll jika ada animasi */
+            color: #333;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-container {
+            background-color: #f7f7f7;
+            border-radius: 20px; /* Lebih bulat */
+            padding: 30px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); /* Bayangan lebih dalam */
+            text-align: center;
+            max-width: 950px; /* Lebar maksimum yang lebih besar */
+            width: 100%;
+            position: relative;
+            /* Latar belakang papan hitam digital */
+            background-image: url('https://placehold.co/950x600/4CAF50/FFFFFF?text=Papan+Hitam+Digital');
+            background-size: cover;
+            background-position: center;
+            color: white; /* Untuk teks di atas papan hitam */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            color: #FFEB3B; /* Kuning terang */
+            margin-bottom: 25px;
+            font-size: 2.8em; /* Saiz fon lebih besar */
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4); /* Bayangan teks lebih jelas */
+            font-weight: 700;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Responsif */
+            gap: 20px; /* Jarak kad lebih besar */
+            perspective: 1000px; /* Untuk animasi flip 3D */
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 800px; /* Hadkan lebar papan */
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Perubahan utama di sini: .card kini mengandungi .card-front dan .card-back secara langsung */
+        .card {
+            width: 100%;
+            padding-bottom: 120%; /* Menjaga nisbah aspek untuk kad */
+            height: 0;
+            background-color: transparent; /* Latar belakang transparent kerana front/back ada warna sendiri */
+            border-radius: 15px; /* Lebih bulat */
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25); /* Bayangan lebih jelas */
+            position: relative;
+            transform-style: preserve-3d; /* Penting untuk animasi 3D anak-anak */
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* Animasi springy */
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Gaya untuk bahagian depan dan belakang kad */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            backface-visibility: hidden; /* Sembunyikan apabila menghadap ke belakang */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding: 15px; /* Padding untuk teks */
+        }
+
+        .card-front {
+            background-color: #FFD700; /* Warna emas cerah */
+            color: #333;
+            z-index: 2; /* Pastikan depan di atas */
+            font-size: 3em; /* Saiz ikon */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .card-back {
+            background-color: #E8F5E9; /* Hijau muda */
+            color: #2e7d32;
+            transform: rotateY(180deg); /* Ini memutar belakang kad supaya ia menghadap ke belakang pada mulanya */
+            z-index: 1; /* Pastikan belakang di bawah */
+            font-size: 1.1em; /* Saiz fon untuk maksud */
+            line-height: 1.4;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .card.matched .card-front,
+        .card.matched .card-back {
+            background-color: #e0e0e0; /* Warna pudar bila matched */
+            color: #757575;
+            pointer-events: none; /* Tak boleh klik lagi */
+            box-shadow: none; /* Buang bayangan */
+            opacity: 0.7; /* Sedikit lutsinar */
+        }
+
+        .feedback-message {
+            font-size: 2.2em; /* Saiz fon lebih besar */
+            font-weight: bold;
+            color: #FFEB3B; /* Kuning terang */
+            margin-top: 15px;
+            min-height: 50px; /* Elak layout shift */
+            animation: fadeInOut 2.5s forwards; /* Animasi pop-up lebih lama */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            opacity: 0; /* Mula dengan lutsinar */
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(30px) scale(0.8); }
+            20% { opacity: 1; transform: translateY(0) scale(1.1); } /* Sedikit "pop" */
+            80% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(0.8); }
+        }
+
+        .character {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #FFC107; /* Warna ceria */
+            border: 4px solid #FF9800;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease-out;
+        }
+
+        .character-left {
+            bottom: 20px;
+            left: 20px;
+            background-color: #9C27B0; /* Ungu */
+            border-color: #673AB7;
+        }
+
+        .character-right {
+            bottom: 20px;
+            right: 20px;
+            background-color: #03A9F4; /* Biru */
+            border-color: #2196F3;
+        }
+
+        .character.jump {
+            animation: characterJump 0.5s ease-out;
+        }
+
+        @keyframes characterJump {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0); }
+        }
+
+        .confetti-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--confetti-color);
+            opacity: 0;
+            animation: fall var(--fall-duration) linear forwards;
+            border-radius: 2px;
+        }
+
+        @keyframes fall {
+            0% {
+                opacity: 1;
+                transform: translate(var(--start-x), var(--start-y)) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--end-x), var(--end-y)) rotate(720deg);
+            }
+        }
+
+
+        /* Butang */
+        .btn {
+            background-color: #FF5722; /* Oren terang */
+            color: white;
+            border: none;
+            padding: 15px 30px; /* Padding lebih besar */
+            border-radius: 10px; /* Lebih bulat */
+            font-size: 1.3em; /* Saiz fon lebih besar */
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background-color: #e64a19;
+            transform: translateY(-3px); /* Kesan "angkat" */
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Responsif untuk skrin kecil */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            .game-board {
+                grid-template-columns: repeat(3, 1fr); /* 3 kolum untuk mobile */
+                gap: 15px;
+            }
+            .card {
+                font-size: 0.9em;
+                padding-bottom: 100%; /* Nisbah aspek lebih persegi */
+            }
+            .card-back {
+                font-size: 0.9em;
+                padding: 10px;
+            }
+            .feedback-message {
+                font-size: 1.5em;
+            }
+            .btn {
+                padding: 12px 25px;
+                font-size: 1.1em;
+            }
+            .character {
+                width: 70px;
+                height: 70px;
+                font-size: 2em;
+            }
+            .character-left { left: 10px; bottom: 10px; }
+            .character-right { right: 10px; bottom: 10px; }
+        }
+
+        @media (max-width: 480px) {
+            .game-board {
+                grid-template-columns: repeat(2, 1fr); /* 2 kolum untuk skrin sangat kecil */
+                gap: 10px;
+            }
+            .card {
+                padding-bottom: 100%;
+            }
+            .game-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Padanan Simpulan Bahasa Ceriah!</h1>
+        <div class="game-board" id="gameBoard">
+            <!-- Kad-kad akan dijana di sini oleh JavaScript -->
+        </div>
+        <div class="feedback-message" id="feedbackMessage"></div>
+        <button id="resetButton" class="btn">Main Semula</button>
+
+        <!-- Watak kartun murid -->
+        <div class="character character-left" id="characterLeft">😊</div>
+        <div class="character character-right" id="characterRight">💡</div>
+
+        <!-- Untuk kesan konfeti -->
+        <div class="confetti-effect" id="confettiEffect"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameBoard = document.getElementById('gameBoard');
+            const feedbackMessage = document.getElementById('feedbackMessage');
+            const resetButton = document.getElementById('resetButton');
+            const characterLeft = document.getElementById('characterLeft');
+            const characterRight = document.getElementById('characterRight');
+            const confettiEffect = document.getElementById('confettiEffect');
+
+            // Data Simpulan Bahasa
+            const vocabulary = [
+                { term: "Berat tulang", meaning: "Malas bekerja" },
+                { term: "Tangan terbuka", meaning: "Sedia membantu" },
+                { term: "Muka tebal", meaning: "Tidak tahu malu" },
+                { term: "Ikat perut", meaning: "Berjimat cermat" },
+                { term: "Buah tangan", meaning: "Hadiah daripada perjalanan" },
+                { term: "Kaki bangku", meaning: "Tidak pandai bermain bola" }
+            ];
+
+            let cards = [];
+            let flippedCards = [];
+            let matchedPairs = 0;
+            let lockBoard = false; // Untuk elak klik semasa animasi
+
+            // AudioContext untuk menjana bunyi ringkas
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+
+            // Fungsi untuk menjana bunyi "match" (nada ceria)
+            function playMatchSound() {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // Nada A4
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+                oscillator.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1); // Naik ke A5
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            }
+
+            // Fungsi untuk menjana bunyi "no match" (nada rendah)
+            function playNoMatchSound() {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(220, audioCtx.currentTime); // Nada A3
+                gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.4);
+            }
+
+            // Fungsi untuk mengocok (shuffle) array
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Fungsi untuk menjana kad-kad permainan dengan betul
+            function generateCardsCorrectly() {
+                gameBoard.innerHTML = ''; // Kosongkan papan
+                feedbackMessage.textContent = ''; // Kosongkan mesej
+                matchedPairs = 0;
+                flippedCards = [];
+                lockBoard = false;
+
+                let allCardsData = [];
+                vocabulary.forEach(pair => {
+                    // Setiap pasangan akan mempunyai dua kad: satu 'term' dan satu 'meaning'
+                    allCardsData.push({ type: 'term', value: pair.term, pairId: pair.term });
+                    allCardsData.push({ type: 'meaning', value: pair.meaning, pairId: pair.term });
+                });
+
+                const shuffledAllCardsData = shuffle(allCardsData);
+
+                shuffledAllCardsData.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.id = index; // ID unik untuk setiap kad visual
+                    card.dataset.pairId = item.pairId; // ID untuk padanan (simpulan bahasa itu sendiri)
+                    card.dataset.type = item.type; // Jenis kad (term/meaning)
+
+                    // Struktur HTML kad yang diperbaiki
+                    card.innerHTML = `
+                        <div class="card-front">💡</div> <!-- Ikon di belakang kad -->
+                        <div class="card-back">${item.value}</div>
+                    `;
+                    card.addEventListener('click', flipCard);
+                    gameBoard.appendChild(card);
+                });
+
+                cards = document.querySelectorAll('.card'); // Kumpul semua kad yang telah dijana
+            }
+
+            // Fungsi apabila kad diklik
+            function flipCard() {
+                if (lockBoard) return; // Jangan benarkan klik jika board terkunci
+                if (this.classList.contains('flipped') || this.classList.contains('matched')) return; // Jangan benarkan klik kad yang sama atau yang sudah matched
+
+                this.classList.add('flipped');
+                flippedCards.push(this);
+
+                if (flippedCards.length === 2) {
+                    lockBoard = true; // Kunci board sementara kad diproses
+                    checkForMatch();
+                }
+            }
+
+            // Fungsi untuk memeriksa padanan
+            function checkForMatch() {
+                const [card1, card2] = flippedCards;
+
+                // Cek jika pairId sama DAN jenis kad berbeza (satu term, satu meaning)
+                const isMatch = (card1.dataset.pairId === card2.dataset.pairId) &&
+                                (card1.dataset.type !== card2.dataset.type);
+
+                if (isMatch) {
+                    disableCards();
+                    playMatchSound();
+                    showFeedback("Hebat! ✨");
+                    animateCharacter('jump'); // Animasi watak
+                    spawnConfetti(); // Efek konfeti
+                    matchedPairs++;
+                    if (matchedPairs === vocabulary.length) {
+                        setTimeout(() => {
+                            showFeedback("Tahniah! Anda telah berjaya! 🎉");
+                            animateCharacter('celebrate'); // Animasi watak akhir
+                        }, 1000); // Tunjuk mesej akhir selepas animasi
+                    }
+                } else {
+                    unflipCards();
+                    playNoMatchSound();
+                    showFeedback("Cuba lagi! 🤔");
+                }
+            }
+
+            // Fungsi apabila padanan betul
+            function disableCards() {
+                flippedCards[0].removeEventListener('click', flipCard);
+                flippedCards[1].removeEventListener('click', flipCard);
+                flippedCards[0].classList.add('matched');
+                flippedCards[1].classList.add('matched');
+                resetFlippedCards();
+            }
+
+            // Fungsi apabila padanan salah
+            function unflipCards() {
+                setTimeout(() => {
+                    flippedCards[0].classList.remove('flipped');
+                    flippedCards[1].classList.remove('flipped');
+                    resetFlippedCards();
+                }, 1000); // Biar nampak sebentar sebelum flip balik
+            }
+
+            // Fungsi untuk reset kad yang telah dibuka
+            function resetFlippedCards() {
+                flippedCards = [];
+                lockBoard = false; // Buka kunci board
+            }
+
+            // Fungsi untuk menunjukkan maklum balas
+            function showFeedback(message) {
+                feedbackMessage.textContent = message;
+                feedbackMessage.classList.remove('fadeInOut'); // Reset animasi
+                void feedbackMessage.offsetWidth; // Trigger reflow
+                feedbackMessage.classList.add('fadeInOut'); // Start animasi
+            }
+
+            // Fungsi untuk animasi watak
+            function animateCharacter(type) {
+                if (type === 'jump') {
+                    characterLeft.classList.add('jump');
+                    characterRight.classList.add('jump');
+                    setTimeout(() => {
+                        characterLeft.classList.remove('jump');
+                        characterRight.classList.remove('jump');
+                    }, 500);
+                } else if (type === 'celebrate') {
+                    // Animasi akhir, boleh lebih kompleks
+                    characterLeft.textContent = '🥳';
+                    characterRight.textContent = '🥳';
+                    characterLeft.classList.add('jump');
+                    characterRight.classList.add('jump');
+                }
+            }
+
+            // Fungsi untuk menjana konfeti
+            function spawnConfetti() {
+                const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+                const numConfetti = 30;
+
+                for (let i = 0; i < numConfetti; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.classList.add('confetti');
+                    confetti.style.setProperty('--confetti-color', colors[Math.floor(Math.random() * colors.length)]);
+                    confetti.style.setProperty('--start-x', `${Math.random() * 100}vw`);
+                    confetti.style.setProperty('--start-y', `${Math.random() * -50}px`);
+                    confetti.style.setProperty('--end-x', `${Math.random() * 100}vw`);
+                    confetti.style.setProperty('--end-y', `${window.innerHeight + 50}px`);
+                    confetti.style.setProperty('--fall-duration', `${Math.random() * 2 + 1.5}s`); // 1.5 to 3.5 seconds
+
+                    confettiEffect.appendChild(confetti);
+
+                    // Buang konfeti selepas animasi selesai
+                    confetti.addEventListener('animationend', () => {
+                        confetti.remove();
+                    });
+                }
+            }
+
+            // Event listener untuk butang main semula
+            resetButton.addEventListener('click', () => {
+                generateCardsCorrectly();
+                // Reset watak ke keadaan asal
+                characterLeft.textContent = '😊';
+                characterRight.textContent = '💡';
+                characterLeft.classList.remove('jump');
+                characterRight.classList.remove('jump');
+            });
+
+            // Mulakan permainan apabila DOM siap
+            generateCardsCorrectly();
+        });
+    </script>
+</body>
+</html>
